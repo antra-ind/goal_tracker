@@ -1,6 +1,7 @@
 import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { Header, Stats, RoutineSection, PlannedSection, CalendarView } from './components';
+import { ProgressChart } from './components/ProgressChart';
 
 function AppContent() {
   return (
@@ -10,10 +11,11 @@ function AppContent() {
         <Stats />
         <RoutineSection />
         <PlannedSection />
+        <ProgressChart />
         <CalendarView />
         
         <footer className="text-center text-white/70 py-4 text-sm">
-          <p>Version 2.0.0 | 🎯 Habit Tracker by Rakhesh</p>
+          <p>🎯 Goal Tracker v2.1.0 | <a href="https://github.com/antra-ind/goal_tracker" className="underline hover:text-white">Open Source</a></p>
         </footer>
       </div>
     </div>

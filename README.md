@@ -12,24 +12,48 @@
 Goal Tracker is a comprehensive personal productivity tool designed to help you:
 - **Track daily habits** across different life areas (spiritual, health, learning, career, finance)
 - **Manage planned activities** with priorities and due dates
-- **Visualize your progress** with statistics and streaks
+- **Visualize your progress** with statistics, charts, and insights
 - **Sync across devices** using GitHub as a backend
 
 Built with modern web technologies and designed for privacy - your data stays in your GitHub account.
 
 ## ✨ Features
 
-- ✅ **Daily Routine Tracking** - Organize habits by categories (spiritual, health, etc.)
-- ✅ **Planned Activities** - Track tasks with priorities, due dates, and recurring options
-- ✅ **Full CRUD Operations** - Add, edit, and delete habits, activities, and categories
-- ✅ **Weekly Calendar View** - Visualize your week with work hours overlay
-- ✅ **Statistics & Streaks** - Monitor progress and maintain motivation
-- ✅ **Auto-Sync** - Changes automatically sync to GitHub Gist (3s debounce)
-- ✅ **Cloud Backup** - Data saved to your private GitHub Gist
-- ✅ **Offline Support** - Works offline with localStorage, syncs when online
-- ✅ **Cross-Device** - Access from any device with the same PAT
-- ✅ **Responsive Design** - Works on desktop, tablet, and mobile
-- ✅ **No Backend Required** - Pure frontend, deploy anywhere
+### 📋 Daily Routine Tracking
+- Organize habits by categories (spiritual, health, learning, career, finance, family)
+- **Two tracking types:**
+  - ✓ **Yes/No (Boolean)** - Simple checkbox for done/not done
+  - 📊 **Numeric (Analog)** - Track quantities with +/- buttons and progress bar
+- Support for various units: glasses, liters, hours, minutes, steps, km, calories, kg, pages, and more
+- Set targets with min/max ranges
+
+### 🎯 Planned Activities
+- Track tasks with priorities (High/Medium/Low)
+- **Flexible recurring options:**
+  - One-time tasks with due dates
+  - Daily recurring
+  - Weekly (specific day)
+  - Custom (select specific days like Mon-Fri)
+- Visual badges showing recurring pattern
+
+### 📈 Progress & Analytics
+- **30-day mini chart** showing daily completion rates
+- **Weekly breakdown** with day-by-day view
+- **Struggling habits** - Identify habits below 50% completion
+- **Strong habits** - Celebrate habits above 80% completion
+- **Category performance** - See which areas need attention
+- **Planned activities insights** - Track recurring task completion
+
+### 📅 Calendar View
+- Weekly calendar with habit overlay
+- Work hours visualization
+- Navigate between weeks
+
+### ☁️ Cloud Sync
+- Auto-sync to GitHub Gist (3-second debounce)
+- Works offline with localStorage
+- Cross-device sync with same PAT
+- No backend server required
 
 ## 🚀 Quick Start
 
@@ -72,19 +96,30 @@ Enter the same PAT on each device - your data will sync automatically!
 
 The app will auto-deploy on push to `main` branch.
 
-> No secrets or environment variables needed! Authentication is handled client-side with PAT.
-
 ## 🛠️ Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
 | React 19 | UI Framework |
-| TypeScript | Type Safety |
-| Vite | Build Tool |
+| TypeScript 5.6 | Type Safety |
+| Vite 7 | Build Tool |
 | Tailwind CSS 4 | Styling |
-| GitHub PAT | Authentication (optional) |
-| GitHub Gist API | Data Storage |
+| date-fns | Date Manipulation |
+| @octokit/rest | GitHub API |
 | Lucide React | Icons |
+
+## 📱 Supported Units for Numeric Habits
+
+| Category | Units |
+|----------|-------|
+| 💧 Liquids | glasses, liters, cups |
+| ⏰ Time | hours, minutes |
+| 🏋️ Fitness | steps, km, miles, reps, sets, calories |
+| ⚖️ Weight | kg, lbs |
+| 📚 Learning | pages, chapters, lessons |
+| 🥗 Health | servings, mg (supplements) |
+| 💰 Money | ₹, $ |
+| 📊 General | times, %, custom |
 
 ## 📄 License
 

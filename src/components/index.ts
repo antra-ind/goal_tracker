@@ -3,6 +3,7 @@ export { Stats } from './Stats';
 export { RoutineSection } from './RoutineSection';
 export { PlannedSection } from './PlannedSection';
 export { CalendarView } from './CalendarView';
+export { ProgressChart } from './ProgressChart';
 export { Modal } from './Modal';
 export { HabitForm } from './HabitForm';
 export { ActivityForm } from './ActivityForm';

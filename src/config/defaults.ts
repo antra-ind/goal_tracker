@@ -107,8 +107,8 @@ export const WORK_SCHEDULE = {
 
 export const createDefaultAppData = (): AppData => ({
   version: APP_VERSION,
-  routineCategories: JSON.parse(JSON.stringify(DEFAULT_ROUTINE_CATEGORIES)),
-  plannedCategories: JSON.parse(JSON.stringify(DEFAULT_PLANNED_CATEGORIES)),
+  routineCategories: structuredClone(DEFAULT_ROUTINE_CATEGORIES),
+  plannedCategories: structuredClone(DEFAULT_PLANNED_CATEGORIES),
   days: {},
   lastUpdated: null,
 });

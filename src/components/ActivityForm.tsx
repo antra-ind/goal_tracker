@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react';
-import type { Activity } from '../types';
+import type { Activity, RecurringType, DayOfWeek } from '../types';
+
+const DAYS_OF_WEEK = [
+  { value: 0 as DayOfWeek, label: 'Sun', fullLabel: 'Sunday' },
+  { value: 1 as DayOfWeek, label: 'Mon', fullLabel: 'Monday' },
+  { value: 2 as DayOfWeek, label: 'Tue', fullLabel: 'Tuesday' },
+  { value: 3 as DayOfWeek, label: 'Wed', fullLabel: 'Wednesday' },
+  { value: 4 as DayOfWeek, label: 'Thu', fullLabel: 'Thursday' },
+  { value: 5 as DayOfWeek, label: 'Fri', fullLabel: 'Friday' },
+  { value: 6 as DayOfWeek, label: 'Sat', fullLabel: 'Saturday' },
+];
 
 interface ActivityFormProps {
   activity?: Activity;
@@ -14,7 +24,17 @@ export function ActivityForm({ activity, onSave, onCancel }: ActivityFormProps) 
   const [date, setDate] = useState(activity?.date || '');
   const [priority, setPriority] = useState<'high' | 'medium' | 'low'>(activity?.priority || 'medium');
   const [description, setDescription] = useState(activity?.description || '');
-  const [recurring, setRecurring] = useState(activity?.recurring || false);
+  
+  // Recurring state - migrate old boolean to new type
+  const getInitialRecurringType = (): RecurringType => {
+    if (activity?.recurringType) return activity.recurringType;
+    if (activity?.recurring) return 'daily'; // backward compat: old recurring=true means daily
+    return 'none';
+  };
+  
+  const [recurringType, setRecurringType] = useState<RecurringType>(getInitialRecurringType());
+  const [recurringWeekday, setRecurringWeekday] = useState<DayOfWeek>(activity?.recurringWeekday ?? 1);
+  const [recurringDays, setRecurringDays] = useState<DayOfWeek[]>(activity?.recurringDays || [1, 2, 3, 4, 5]);
 
   useEffect(() => {
     if (activity) {
@@ -24,9 +44,19 @@ export function ActivityForm({ activity, onSave, onCancel }: ActivityFormProps) 
       setDate(activity.date || '');
       setPriority(activity.priority);
       setDescription(activity.description || '');
-      setRecurring(activity.recurring);
+      setRecurringType(getInitialRecurringType());
+      setRecurringWeekday(activity.recurringWeekday ?? 1);
+      setRecurringDays(activity.recurringDays || [1, 2, 3, 4, 5]);
     }
   }, [activity]);
+
+  const toggleDay = (day: DayOfWeek) => {
+    setRecurringDays(prev => 
+      prev.includes(day) 
+        ? prev.filter(d => d !== day)
+        : [...prev, day].sort((a, b) => a - b)
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +67,13 @@ export function ActivityForm({ activity, onSave, onCancel }: ActivityFormProps) 
       name: name.trim(),
       time: time.trim() || undefined,
       duration: duration.trim() || undefined,
-      date: date || undefined,
+      date: recurringType === 'none' ? (date || undefined) : undefined,
       priority,
       description: description.trim() || undefined,
-      recurring,
+      recurring: recurringType !== 'none', // backward compat
+      recurringType,
+      recurringDays: recurringType === 'custom' ? recurringDays : undefined,
+      recurringWeekday: recurringType === 'weekly' ? recurringWeekday : undefined,
     });
   };
 
@@ -88,32 +121,19 @@ export function ActivityForm({ activity, onSave, onCancel }: ActivityFormProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Due Date (optional)
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Priority
-          </label>
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as 'high' | 'medium' | 'low')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="high">🔴 High</option>
-            <option value="medium">🟡 Medium</option>
-            <option value="low">🔵 Low</option>
-          </select>
-        </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Priority
+        </label>
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as 'high' | 'medium' | 'low')}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="high">🔴 High</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="low">🔵 Low</option>
+        </select>
       </div>
 
       <div>
@@ -129,17 +149,86 @@ export function ActivityForm({ activity, onSave, onCancel }: ActivityFormProps) 
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="recurring"
-          checked={recurring}
-          onChange={(e) => setRecurring(e.target.checked)}
-          className="w-4 h-4 accent-blue-500"
-        />
-        <label htmlFor="recurring" className="text-sm text-gray-700">
-          Recurring (shows every day)
+      {/* Recurring Options */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700">
+          Repeat
         </label>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { value: 'none' as RecurringType, label: 'One-time' },
+            { value: 'daily' as RecurringType, label: 'Every Day' },
+            { value: 'weekly' as RecurringType, label: 'Weekly' },
+            { value: 'custom' as RecurringType, label: 'Custom Days' },
+          ].map(option => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setRecurringType(option.value)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                recurringType === option.value
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Weekly: Pick specific day */}
+        {recurringType === 'weekly' && (
+          <div className="mt-2">
+            <label className="block text-xs text-gray-500 mb-1">Every:</label>
+            <select
+              value={recurringWeekday}
+              onChange={(e) => setRecurringWeekday(Number(e.target.value) as DayOfWeek)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {DAYS_OF_WEEK.map(day => (
+                <option key={day.value} value={day.value}>
+                  {day.fullLabel}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Custom: Pick multiple days */}
+        {recurringType === 'custom' && (
+          <div className="mt-2">
+            <label className="block text-xs text-gray-500 mb-1">Select days:</label>
+            <div className="flex gap-1">
+              {DAYS_OF_WEEK.map(day => (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => toggleDay(day.value)}
+                  className={`w-10 h-10 rounded-lg text-sm font-medium transition ${
+                    recurringDays.includes(day.value)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* One-time: Show date picker */}
+        {recurringType === 'none' && (
+          <div className="mt-2">
+            <label className="block text-xs text-gray-500 mb-1">Due Date (optional):</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex gap-3 pt-2">

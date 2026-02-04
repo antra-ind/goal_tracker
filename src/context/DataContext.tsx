@@ -13,6 +13,7 @@ interface DataContextType {
   updateData: (newData: Partial<AppData>) => void;
   saveDayData: (dayKey: string, dayData: Partial<DayData>) => void;
   toggleHabit: (habitId: string) => void;
+  setHabitValue: (habitId: string, value: number) => void;
   toggleActivity: (activityId: string) => void;
   // CRUD for habits
   addHabit: (categoryId: string, habit: Omit<Habit, 'id'>) => void;
@@ -213,6 +214,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, [currentDate]);
 
+  const setHabitValue = useCallback((habitId: string, value: number) => {
+    const dayKey = getDateKey(currentDate);
+    setData(prev => {
+      const currentDay = prev.days[dayKey] || {
+        routine: {},
+        planned: {},
+        metrics: {},
+        reflection: { wentWell: '', improve: '', gratitude: '' },
+      };
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayKey]: {
+            ...currentDay,
+            routine: {
+              ...currentDay.routine,
+              [habitId]: value,
+            },
+          },
+        },
+      };
+    });
+  }, [currentDate]);
+
   const toggleActivity = useCallback((activityId: string) => {
     const dayKey = getDateKey(currentDate);
     setData(prev => {
@@ -400,6 +426,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateData,
         saveDayData,
         toggleHabit,
+        setHabitValue,
         toggleActivity,
         addHabit,
         updateHabit,

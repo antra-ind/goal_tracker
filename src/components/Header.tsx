@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Github, LogOut, Cloud } from 'lucide-react';
+import { GitBranch, LogOut, Cloud } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { format } from 'date-fns';
@@ -67,7 +67,7 @@ export function Header() {
               onClick={() => setShowTokenModal(true)}
               className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition"
             >
-              <Github size={18} />
+              <GitBranch size={18} />
               <span className="hidden sm:inline">Connect GitHub</span>
             </button>
           )}
