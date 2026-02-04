@@ -1,11 +1,14 @@
-import { Github, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { Github, LogOut, Cloud } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { format } from 'date-fns';
+import { TokenModal } from './TokenModal';
 
 export function Header() {
-  const { isAuthenticated, user, login, logout, loading } = useAuth();
+  const { isAuthenticated, user, loginWithToken, logout, loading, error } = useAuth();
   const { currentDate, setCurrentDate, saving, lastSaved, syncWithGist } = useData();
+  const [showTokenModal, setShowTokenModal] = useState(false);
 
   const changeDate = (days: number) => {
     const newDate = new Date(currentDate);
@@ -15,16 +18,21 @@ export function Header() {
 
   const goToToday = () => setCurrentDate(new Date());
 
+  const handleTokenSubmit = async (token: string) => {
+    await loginWithToken(token);
+    setShowTokenModal(false);
+  };
+
   return (
     <header className="text-center text-white py-4">
       <div className="flex justify-between items-center max-w-6xl mx-auto px-4">
-        <h1 className="text-2xl font-bold">🎯 2026 Habit Tracker</h1>
+        <h1 className="text-2xl font-bold">🎯 Goal Tracker</h1>
         
         <div className="flex items-center gap-4">
           {saving && <span className="text-sm opacity-75">Saving...</span>}
           {lastSaved && (
             <span className="text-sm opacity-75">
-              Saved {format(lastSaved, 'HH:mm')}
+              Synced {format(lastSaved, 'HH:mm')}
             </span>
           )}
           
@@ -34,32 +42,33 @@ export function Header() {
             <div className="flex items-center gap-3">
               <button
                 onClick={syncWithGist}
-                className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm transition"
+                className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
                 disabled={saving}
               >
-                💾 Sync
+                <Cloud size={14} />
+                Sync
               </button>
               <img
                 src={user.avatar_url}
                 alt={user.name}
                 className="w-8 h-8 rounded-full"
               />
-              <span className="text-sm">{user.login}</span>
+              <span className="text-sm hidden sm:inline">{user.login}</span>
               <button
                 onClick={logout}
                 className="p-2 hover:bg-white/20 rounded-lg transition"
-                title="Logout"
+                title="Disconnect"
               >
                 <LogOut size={18} />
               </button>
             </div>
           ) : (
             <button
-              onClick={login}
+              onClick={() => setShowTokenModal(true)}
               className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition"
             >
               <Github size={18} />
-              Sign in with GitHub
+              <span className="hidden sm:inline">Connect GitHub</span>
             </button>
           )}
         </div>
@@ -88,6 +97,13 @@ export function Header() {
           📅 Today
         </button>
       </div>
+
+      <TokenModal
+        isOpen={showTokenModal}
+        onClose={() => setShowTokenModal(false)}
+        onSubmit={handleTokenSubmit}
+        error={error || undefined}
+      />
     </header>
   );
 }

@@ -1,12 +1,12 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { AuthState, User } from '../types';
-import { GITHUB_CONFIG, GITHUB_SCOPES, STORAGE_KEYS } from '../config/github';
+import { STORAGE_KEYS } from '../config/github';
 
 interface AuthContextType extends AuthState {
-  login: () => void;
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
-  handleCallback: (code: string) => Promise<void>;
+  error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token: null,
     loading: true,
   });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for stored token on mount
@@ -43,18 +44,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = () => {
-    const params = new URLSearchParams({
-      client_id: GITHUB_CONFIG.clientId,
-      redirect_uri: GITHUB_CONFIG.redirectUri,
-      scope: GITHUB_SCOPES.join(' '),
-      state: crypto.randomUUID(),
-    });
+  const loginWithToken = useCallback(async (token: string) => {
+    setError(null);
+    setAuth(prev => ({ ...prev, loading: true }));
     
-    window.location.href = `https://github.com/login/oauth/authorize?${params}`;
-  };
+    try {
+      // Validate token by fetching user info
+      const userRes = await fetch('https://api.github.com/user', {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+      
+      if (!userRes.ok) {
+        if (userRes.status === 401) {
+          throw new Error('Invalid token. Please check and try again.');
+        }
+        throw new Error('Failed to connect to GitHub.');
+      }
+      
+      const userData = await userRes.json();
+      
+      // Check if token has gist scope by trying to list gists
+      const gistRes = await fetch('https://api.github.com/gists?per_page=1', {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+      
+      if (!gistRes.ok) {
+        throw new Error('Token missing "gist" scope. Please generate a new token with gist permissions.');
+      }
+      
+      const user: User = {
+        login: userData.login,
+        avatar_url: userData.avatar_url,
+        name: userData.name || userData.login,
+      };
+      
+      localStorage.setItem(STORAGE_KEYS.token, token);
+      localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+      
+      setAuth({
+        isAuthenticated: true,
+        user,
+        token,
+        loading: false,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Connection failed';
+      setError(message);
+      setAuth(prev => ({ ...prev, loading: false }));
+      throw err;
+    }
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEYS.token);
     localStorage.removeItem(STORAGE_KEYS.user);
     setAuth({
@@ -63,49 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: null,
       loading: false,
     });
-  };
-
-  const handleCallback = async (code: string) => {
-    setAuth(prev => ({ ...prev, loading: true }));
-    
-    try {
-      // Exchange code for token via proxy (to keep client_secret secure)
-      // For local dev/testing, you can use a direct token
-      if (!GITHUB_CONFIG.tokenProxyUrl) {
-        throw new Error('Token proxy URL not configured. Set VITE_TOKEN_PROXY_URL in .env');
-      }
-
-      const tokenRes = await fetch(GITHUB_CONFIG.tokenProxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-      
-      const { access_token } = await tokenRes.json();
-      
-      // Get user info
-      const userRes = await fetch('https://api.github.com/user', {
-        headers: { Authorization: `Bearer ${access_token}` },
-      });
-      const user = await userRes.json();
-      
-      localStorage.setItem(STORAGE_KEYS.token, access_token);
-      localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
-      
-      setAuth({
-        isAuthenticated: true,
-        user,
-        token: access_token,
-        loading: false,
-      });
-    } catch (error) {
-      console.error('Auth error:', error);
-      setAuth(prev => ({ ...prev, loading: false }));
-    }
-  };
+    setError(null);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ ...auth, login, logout, handleCallback }}>
+    <AuthContext.Provider value={{ ...auth, loginWithToken, logout, error }}>
       {children}
     </AuthContext.Provider>
   );
