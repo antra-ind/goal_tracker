@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Octokit } from '@octokit/rest';
 import type { AppData, DayData, Habit, Activity, CategoryType, RoutineCategory, PlannedCategory } from '../types';
@@ -84,6 +84,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEYS.localData, JSON.stringify(data));
   }, [data]);
 
+  // Track if initial load is complete
+  const initialLoadDone = useRef(false);
+  const autoSyncTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Mark initial load as done after first data load
+  useEffect(() => {
+    if (!initialLoadDone.current && data.lastUpdated) {
+      initialLoadDone.current = true;
+    }
+  }, [data.lastUpdated]);
+
   const syncWithGist = useCallback(async () => {
     if (!isAuthenticated || !token) return;
 
@@ -122,6 +133,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSaving(false);
     }
   }, [isAuthenticated, token, gistId, data]);
+
+  // Auto-sync to Gist when data changes (debounced 3 seconds)
+  useEffect(() => {
+    // Skip if not authenticated or initial load not done
+    if (!isAuthenticated || !token || !initialLoadDone.current) return;
+
+    // Clear existing timeout
+    if (autoSyncTimeout.current) {
+      clearTimeout(autoSyncTimeout.current);
+    }
+
+    // Set new timeout for auto-sync (3 second debounce)
+    autoSyncTimeout.current = setTimeout(() => {
+      syncWithGist();
+    }, 3000);
+
+    // Cleanup on unmount
+    return () => {
+      if (autoSyncTimeout.current) {
+        clearTimeout(autoSyncTimeout.current);
+      }
+    };
+  }, [data, isAuthenticated, token, syncWithGist]);
 
   const updateData = useCallback((newData: Partial<AppData>) => {
     setData(prev => ({

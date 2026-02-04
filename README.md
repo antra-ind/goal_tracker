@@ -24,10 +24,12 @@ Built with modern web technologies and designed for privacy - your data stays in
 - ✅ **Full CRUD Operations** - Add, edit, and delete habits, activities, and categories
 - ✅ **Weekly Calendar View** - Visualize your week with work hours overlay
 - ✅ **Statistics & Streaks** - Monitor progress and maintain motivation
-- ✅ **GitHub SSO Login** - Secure authentication with your GitHub account
-- ✅ **Cloud Sync** - Data automatically saved to private GitHub Gist
+- ✅ **Auto-Sync** - Changes automatically sync to GitHub Gist (3s debounce)
+- ✅ **Cloud Backup** - Data saved to your private GitHub Gist
 - ✅ **Offline Support** - Works offline with localStorage, syncs when online
+- ✅ **Cross-Device** - Access from any device with the same PAT
 - ✅ **Responsive Design** - Works on desktop, tablet, and mobile
+- ✅ **No Backend Required** - Pure frontend, deploy anywhere
 
 ## 🚀 Quick Start
 
@@ -41,26 +43,36 @@ npm run dev
 
 Open http://localhost:5173/goal_tracker/
 
-## 🔐 GitHub OAuth Setup
+## 🔐 GitHub Sync Setup (Optional)
 
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Create **New OAuth App**
-3. Set Homepage URL: `https://antra-ind.github.io/goal_tracker/`
-4. Set Callback URL: `https://antra-ind.github.io/goal_tracker/`
-5. Copy Client ID and create `.env.local`:
+Sync your data across devices using a GitHub Personal Access Token (PAT):
 
-```bash
-cp .env.example .env.local
-# Add your VITE_GITHUB_CLIENT_ID
-```
+1. **Generate a PAT:**
+   - Go to [GitHub Token Settings](https://github.com/settings/tokens/new?description=Goal%20Tracker&scopes=gist)
+   - Select only the **`gist`** scope
+   - Click "Generate token"
+   - Copy the token (starts with `ghp_...`)
+
+2. **Connect in the app:**
+   - Click "Connect GitHub" button
+   - Paste your token
+   - Done! Your data syncs automatically
+
+> **Note:** The token is stored only in your browser's localStorage. Your data is saved to a private Gist in your GitHub account.
+
+### Using on Multiple Devices
+
+Enter the same PAT on each device - your data will sync automatically!
 
 ## 📦 Deploy to GitHub Pages
 
-1. Push code to GitHub
-2. Go to Settings → Pages → Source: GitHub Actions
-3. Add repository secret `GITHUB_CLIENT_ID` in Settings → Secrets → Actions
+1. Fork this repository
+2. Go to Settings → Pages → Source: **GitHub Actions**
+3. Push any change to trigger deployment
 
 The app will auto-deploy on push to `main` branch.
+
+> No secrets or environment variables needed! Authentication is handled client-side with PAT.
 
 ## 🛠️ Tech Stack
 
@@ -70,7 +82,7 @@ The app will auto-deploy on push to `main` branch.
 | TypeScript | Type Safety |
 | Vite | Build Tool |
 | Tailwind CSS 4 | Styling |
-| GitHub OAuth | Authentication |
+| GitHub PAT | Authentication (optional) |
 | GitHub Gist API | Data Storage |
 | Lucide React | Icons |
 
