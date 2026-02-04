@@ -62,17 +62,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       // If authenticated, try to load from Gist
-      if (isAuthenticated && token && gistId) {
-        try {
-          const octokit = new Octokit({ auth: token });
-          const { data: gist } = await octokit.gists.get({ gist_id: gistId });
-          const content = gist.files?.['habit-tracker-data.json']?.content;
-          if (content) {
-            const gistData = JSON.parse(content);
-            setData({ ...createDefaultAppData(), ...gistData });
+      if (isAuthenticated && token) {
+        const octokit = new Octokit({ auth: token });
+        
+        let currentGistId = gistId;
+        
+        // If no gistId stored, search for existing Gist
+        if (!currentGistId) {
+          try {
+            const { data: gists } = await octokit.gists.list({ per_page: 100 });
+            const existingGist = gists.find(g => 
+              g.files && 'habit-tracker-data.json' in g.files
+            );
+            if (existingGist?.id) {
+              currentGistId = existingGist.id;
+              setGistId(currentGistId);
+              localStorage.setItem(STORAGE_KEYS.gistId, currentGistId);
+              console.log('Found existing Gist:', currentGistId);
+            }
+          } catch (error) {
+            console.error('Failed to search for Gist:', error);
           }
-        } catch (error) {
-          console.error('Failed to load from Gist:', error);
+        }
+        
+        // Now load data from Gist
+        if (currentGistId) {
+          try {
+            const { data: gist } = await octokit.gists.get({ gist_id: currentGistId });
+            const content = gist.files?.['habit-tracker-data.json']?.content;
+            if (content) {
+              const gistData = JSON.parse(content);
+              setData({ ...createDefaultAppData(), ...gistData });
+              console.log('Loaded data from Gist');
+            }
+          } catch (error) {
+            console.error('Failed to load from Gist:', error);
+          }
         }
       }
     };
