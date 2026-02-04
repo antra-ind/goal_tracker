@@ -2,6 +2,7 @@ import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { Header, Stats, RoutineSection, PlannedSection, CalendarView } from './components';
 import { ProgressChart } from './components/ProgressChart';
+import { APP_VERSION } from './config/defaults';
 
 function AppContent() {
   return (
@@ -15,7 +16,7 @@ function AppContent() {
         <CalendarView />
         
         <footer className="text-center text-white/70 py-4 text-sm">
-          <p>🎯 Goal Tracker v2.1.0 | <a href="https://github.com/antra-ind/goal_tracker" className="underline hover:text-white">Open Source</a></p>
+          <p>🎯 Goal Tracker v{APP_VERSION} | <a href="https://github.com/antra-ind/goal_tracker" className="underline hover:text-white">Open Source</a></p>
         </footer>
       </div>
     </div>

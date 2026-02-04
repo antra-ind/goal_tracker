@@ -11,6 +11,40 @@ const DAYS_OF_WEEK = [
   { value: 6 as DayOfWeek, label: 'Sat', fullLabel: 'Saturday' },
 ];
 
+// Generate time options (every 30 minutes from 4 AM to 11 PM)
+const TIME_OPTIONS = [
+  { value: '', label: 'Select time...' },
+  { value: 'All day', label: '🌅 All day' },
+  { value: 'Morning', label: '🌄 Morning' },
+  { value: 'Afternoon', label: '☀️ Afternoon' },
+  { value: 'Evening', label: '🌆 Evening' },
+  { value: 'Throughout Day', label: '🔄 Throughout Day' },
+  ...Array.from({ length: 38 }, (_, i) => {
+    const totalMinutes = (4 * 60) + (i * 30); // Start from 4:00 AM
+    const hour = Math.floor(totalMinutes / 60);
+    const minute = totalMinutes % 60;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    const timeStr = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+    return { value: timeStr, label: `⏰ ${timeStr}` };
+  }),
+];
+
+// Duration options
+const DURATION_OPTIONS = [
+  { value: '', label: 'Select duration...' },
+  { value: '5 min', label: '5 min' },
+  { value: '10 min', label: '10 min' },
+  { value: '15 min', label: '15 min' },
+  { value: '20 min', label: '20 min' },
+  { value: '30 min', label: '30 min' },
+  { value: '45 min', label: '45 min' },
+  { value: '60 min', label: '60 min (1 hr)' },
+  { value: '90 min', label: '90 min (1.5 hr)' },
+  { value: '120 min', label: '120 min (2 hr)' },
+  { value: '180 min', label: '180 min (3 hr)' },
+];
+
 interface ActivityFormProps {
   activity?: Activity;
   onSave: (activity: Omit<Activity, 'id'> & { id?: string }) => void;
@@ -99,25 +133,29 @@ export function ActivityForm({ activity, onSave, onCancel }: ActivityFormProps) 
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Time (optional)
           </label>
-          <input
-            type="text"
+          <select
             value={time}
             onChange={(e) => setTime(e.target.value)}
-            placeholder="e.g., 2:00 PM"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+          >
+            {TIME_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Duration (optional)
           </label>
-          <input
-            type="text"
+          <select
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
-            placeholder="e.g., 2 hours"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+          >
+            {DURATION_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
