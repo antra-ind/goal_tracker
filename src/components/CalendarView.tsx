@@ -148,14 +148,28 @@ export function CalendarView() {
       result[i] = [];
     }
     
-    // Add routine habits (show every day)
+    // Add routine habits (respect recurring options)
     data.routineCategories.forEach(cat => {
       cat.habits.forEach(habit => {
         const startSlot = parseTimeToSlot(habit.time);
         if (startSlot !== null) {
           const durationSlots = parseDurationToSlots(habit.duration);
-          // Add to all days
-          for (let day = 0; day < 7; day++) {
+          
+          // Determine which days to show based on recurring type
+          let days: number[] = [];
+          const recurringType = habit.recurringType || 'daily'; // Default to daily for backward compatibility
+          
+          if (recurringType === 'daily') {
+            days = [0, 1, 2, 3, 4, 5, 6];
+          } else if (recurringType === 'weekly' && habit.recurringWeekday !== undefined) {
+            days = [habit.recurringWeekday];
+          } else if (recurringType === 'custom' && habit.recurringDays) {
+            days = habit.recurringDays;
+          } else {
+            days = [0, 1, 2, 3, 4, 5, 6]; // Fallback to daily
+          }
+          
+          for (const day of days) {
             result[day].push({
               id: `habit-${habit.id}-${day}`,
               name: habit.name,

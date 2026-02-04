@@ -121,7 +121,49 @@ The app will auto-deploy on push to `main` branch.
 | 💰 Money | ₹, $ |
 | 📊 General | times, %, custom |
 
-## 📄 License
+## � Roadmap
+
+### ✅ v2.0.0 (Current)
+- Daily habit tracking (boolean + numeric)
+- Planned activities with recurring options
+- GitHub Gist sync across devices
+- Google Calendar-style calendar view (day/week)
+- Progress analytics and insights
+- 15-minute time slots with overlap handling
+
+### 🔮 v3.0.0 (Planned) - AI Task Integration
+**Auto-scan Email & Teams for tasks using AI**
+
+#### Features
+- 🔗 **Microsoft Graph Integration** - Connect to Outlook & Teams
+- 🤖 **AI Task Extraction** - LLM parses emails/messages for action items
+- 📅 **Auto-create Activities** - Tasks added with deadlines & categories
+- ✅ **Completion Verification** - AI checks if tasks are done based on follow-up messages
+- 🔄 **Daily Scan** - Automatic or manual trigger
+
+#### Architecture
+```
+Microsoft Graph API → Backend (Node.js) → LLM (OpenAI/Claude) → Goal Tracker
+     (Email/Teams)        (OAuth)           (Parse tasks)         (Gist)
+```
+
+#### Requirements
+- Azure AD App Registration (Mail.Read, Chat.Read permissions)
+- Backend server (Node.js/Python) for OAuth & API calls
+- LLM API key (OpenAI/Anthropic)
+- Hosting (Vercel/Railway/self-hosted)
+
+#### Estimated Effort
+| Component | Time |
+|-----------|------|
+| Azure AD Setup | 2-4 hours |
+| Backend API | 1-2 days |
+| Frontend UI | 4-6 hours |
+| Testing | 1 day |
+
+---
+
+## �📄 License
 
 MIT © [Antra](https://github.com/antra-ind)
 

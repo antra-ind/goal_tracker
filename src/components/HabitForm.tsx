@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
-import type { Habit, HabitTrackingType } from '../types';
+import type { Habit, HabitTrackingType, RecurringType, DayOfWeek } from '../types';
+import { TimePicker } from './TimePicker';
+
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Sun' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+];
 
 const COMMON_UNITS = [
   // Liquids
@@ -35,25 +46,6 @@ const COMMON_UNITS = [
   { value: 'custom', label: '✏️ Custom...' },
 ];
 
-// Generate time options (every 30 minutes from 4 AM to 11 PM)
-const TIME_OPTIONS = [
-  { value: '', label: 'Select time...' },
-  { value: 'All day', label: '🌅 All day' },
-  { value: 'Morning', label: '🌄 Morning' },
-  { value: 'Afternoon', label: '☀️ Afternoon' },
-  { value: 'Evening', label: '🌆 Evening' },
-  { value: 'Throughout Day', label: '🔄 Throughout Day' },
-  ...Array.from({ length: 38 }, (_, i) => {
-    const totalMinutes = (4 * 60) + (i * 30); // Start from 4:00 AM
-    const hour = Math.floor(totalMinutes / 60);
-    const minute = totalMinutes % 60;
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    const timeStr = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-    return { value: timeStr, label: `⏰ ${timeStr}` };
-  }),
-];
-
 // Duration options
 const DURATION_OPTIONS = [
   { value: '', label: 'Select duration...' },
@@ -85,6 +77,17 @@ export function HabitForm({ habit, onSave, onCancel }: HabitFormProps) {
   const [target, setTarget] = useState(habit?.target?.toString() || '8');
   const [min, setMin] = useState(habit?.min?.toString() || '0');
   const [max, setMax] = useState(habit?.max?.toString() || '10');
+  
+  // Recurring options
+  const [recurringType, setRecurringType] = useState<RecurringType>(habit?.recurringType || 'daily');
+  const [recurringWeekday, setRecurringWeekday] = useState<DayOfWeek>(habit?.recurringWeekday ?? 1);
+  const [recurringDays, setRecurringDays] = useState<DayOfWeek[]>(habit?.recurringDays || [1, 2, 3, 4, 5]);
+
+  const toggleDay = (day: DayOfWeek) => {
+    setRecurringDays(prev => 
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
 
   useEffect(() => {
     if (habit) {
@@ -92,6 +95,9 @@ export function HabitForm({ habit, onSave, onCancel }: HabitFormProps) {
       setTime(habit.time || '');
       setDuration(habit.duration || '');
       setTrackingType(habit.trackingType || 'boolean');
+      setRecurringType(habit.recurringType || 'daily');
+      setRecurringWeekday(habit.recurringWeekday ?? 1);
+      setRecurringDays(habit.recurringDays || [1, 2, 3, 4, 5]);
       
       // Check if unit is a custom value
       const isStandardUnit = COMMON_UNITS.some(u => u.value === habit.unit && u.value !== 'custom');
@@ -124,6 +130,9 @@ export function HabitForm({ habit, onSave, onCancel }: HabitFormProps) {
       target: trackingType === 'number' ? Number(target) : undefined,
       min: trackingType === 'number' ? Number(min) : undefined,
       max: trackingType === 'number' ? Number(max) : undefined,
+      recurringType,
+      recurringWeekday: recurringType === 'weekly' ? recurringWeekday : undefined,
+      recurringDays: recurringType === 'custom' ? recurringDays : undefined,
     });
   };
 
@@ -239,15 +248,11 @@ export function HabitForm({ habit, onSave, onCancel }: HabitFormProps) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Time (optional)
           </label>
-          <select
+          <TimePicker
             value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {TIME_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+            onChange={setTime}
+            placeholder="Select time..."
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -263,6 +268,72 @@ export function HabitForm({ habit, onSave, onCancel }: HabitFormProps) {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Recurring Options */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Repeat
+        </label>
+        <div className="flex gap-2 flex-wrap">
+          {(['daily', 'weekly', 'custom'] as RecurringType[]).map(type => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setRecurringType(type)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                recurringType === type
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {type === 'daily' && '📅 Daily'}
+              {type === 'weekly' && '📆 Weekly'}
+              {type === 'custom' && '🎯 Custom'}
+            </button>
+          ))}
+        </div>
+        
+        {/* Weekly: Select day */}
+        {recurringType === 'weekly' && (
+          <div className="mt-3">
+            <label className="block text-xs text-gray-600 mb-1">Which day?</label>
+            <select
+              value={recurringWeekday}
+              onChange={(e) => setRecurringWeekday(Number(e.target.value) as DayOfWeek)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            >
+              {DAYS_OF_WEEK.map(day => (
+                <option key={day.value} value={day.value}>
+                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day.value]}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        {/* Custom: Select multiple days */}
+        {recurringType === 'custom' && (
+          <div className="mt-3">
+            <label className="block text-xs text-gray-600 mb-1">Select days</label>
+            <div className="flex gap-1 flex-wrap">
+              {DAYS_OF_WEEK.map(day => (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => toggleDay(day.value as DayOfWeek)}
+                  className={`w-10 h-10 rounded-lg text-sm font-medium transition ${
+                    recurringDays.includes(day.value as DayOfWeek)
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {day.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-3 pt-2">

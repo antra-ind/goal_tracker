@@ -9,3 +9,4 @@ export { HabitForm } from './HabitForm';
 export { ActivityForm } from './ActivityForm';
 export { CategoryForm } from './CategoryForm';
 export { TokenModal } from './TokenModal';
+export { TimePicker } from './TimePicker';

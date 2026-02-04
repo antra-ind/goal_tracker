@@ -12,6 +12,10 @@ export interface Habit {
   target?: number; // Target value for the day
   min?: number; // Minimum value
   max?: number; // Maximum value
+  // Recurring options (default: daily)
+  recurringType?: RecurringType;
+  recurringDays?: DayOfWeek[]; // For custom: specific days of the week
+  recurringWeekday?: DayOfWeek; // For weekly: which day of the week
 }
 
 export type RecurringType = 'none' | 'daily' | 'weekly' | 'custom';

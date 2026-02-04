@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Activity, RecurringType, DayOfWeek } from '../types';
+import { TimePicker } from './TimePicker';
 
 const DAYS_OF_WEEK = [
   { value: 0 as DayOfWeek, label: 'Sun', fullLabel: 'Sunday' },
@@ -9,25 +10,6 @@ const DAYS_OF_WEEK = [
   { value: 4 as DayOfWeek, label: 'Thu', fullLabel: 'Thursday' },
   { value: 5 as DayOfWeek, label: 'Fri', fullLabel: 'Friday' },
   { value: 6 as DayOfWeek, label: 'Sat', fullLabel: 'Saturday' },
-];
-
-// Generate time options (every 30 minutes from 4 AM to 11 PM)
-const TIME_OPTIONS = [
-  { value: '', label: 'Select time...' },
-  { value: 'All day', label: '🌅 All day' },
-  { value: 'Morning', label: '🌄 Morning' },
-  { value: 'Afternoon', label: '☀️ Afternoon' },
-  { value: 'Evening', label: '🌆 Evening' },
-  { value: 'Throughout Day', label: '🔄 Throughout Day' },
-  ...Array.from({ length: 38 }, (_, i) => {
-    const totalMinutes = (4 * 60) + (i * 30); // Start from 4:00 AM
-    const hour = Math.floor(totalMinutes / 60);
-    const minute = totalMinutes % 60;
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    const timeStr = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-    return { value: timeStr, label: `⏰ ${timeStr}` };
-  }),
 ];
 
 // Duration options
@@ -133,15 +115,11 @@ export function ActivityForm({ activity, onSave, onCancel }: ActivityFormProps) 
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Time (optional)
           </label>
-          <select
+          <TimePicker
             value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {TIME_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+            onChange={setTime}
+            placeholder="Select time..."
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
