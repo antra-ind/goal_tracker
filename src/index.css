@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+:root {
+  --spiritual: #9b59b6;
+  --health: #27ae60;
+  --learning: #3498db;
+  --career: #e67e22;
+  --finance: #1abc9c;
+  --family: #e74c3c;
+}
+
+body {
+  @apply bg-gradient-to-br from-indigo-500 to-purple-600 min-h-screen;
+}
