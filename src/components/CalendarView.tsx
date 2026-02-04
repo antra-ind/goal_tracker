@@ -4,6 +4,8 @@ import { useData } from '../context/DataContext';
 import { WORK_SCHEDULE } from '../config/defaults';
 import { CATEGORY_COLORS } from '../types';
 
+type ViewMode = 'day' | 'week';
+
 interface CalendarEvent {
   id: string;
   name: string;
@@ -118,13 +120,20 @@ const layoutEvents = (events: CalendarEvent[]): CalendarEvent[] => {
 
 export function CalendarView() {
   const { data, currentDate } = useData();
+  const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+
+  const changeDay = (delta: number) => {
+    setSelectedDate(prev => addDays(prev, delta));
+  };
 
   const changeWeek = (delta: number) => {
     setWeekStart(prev => addDays(prev, delta * 7));
   };
 
-  const goToCurrentWeek = () => {
+  const goToToday = () => {
+    setSelectedDate(new Date());
     setWeekStart(startOfWeek(new Date()));
   };
 
@@ -220,28 +229,61 @@ export function CalendarView() {
   const timeSlots = Array.from({ length: 75 }, (_, i) => i); // 4 AM to 10:30 PM (15-min slots)
   const slotHeight = 16; // pixels per 15-min slot
 
+  // Get days to display based on view mode
+  const displayDays = viewMode === 'day' ? [selectedDate] : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  
+  // Grid styles - fixed time column width, flexible day columns
+  const gridStyle = viewMode === 'day' 
+    ? { gridTemplateColumns: '64px 1fr' }
+    : { gridTemplateColumns: '64px repeat(7, 1fr)' };
+
   return (
     <div className="bg-white rounded-xl p-4 my-6 overflow-x-auto">
       <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-        <h3 className="text-lg font-bold">📆 Weekly Calendar</h3>
+        <h3 className="text-lg font-bold">📆 {viewMode === 'day' ? 'Daily' : 'Weekly'} Calendar</h3>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex bg-gray-200 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode('day')}
+              className={`px-3 py-1 text-sm rounded-md transition ${
+                viewMode === 'day' ? 'bg-white shadow text-indigo-600' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Day
+            </button>
+            <button
+              onClick={() => setViewMode('week')}
+              className={`px-3 py-1 text-sm rounded-md transition ${
+                viewMode === 'week' ? 'bg-white shadow text-indigo-600' : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Week
+            </button>
+          </div>
+          
+          <span className="text-gray-300">|</span>
+          
           <button
-            onClick={() => changeWeek(-1)}
+            onClick={() => viewMode === 'day' ? changeDay(-1) : changeWeek(-1)}
             className="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition"
           >
             ◀ Prev
           </button>
           <span className="font-medium min-w-[150px] text-center">
-            {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d')}
+            {viewMode === 'day' 
+              ? format(selectedDate, 'EEE, MMM d, yyyy')
+              : `${format(weekStart, 'MMM d')} - ${format(addDays(weekStart, 6), 'MMM d')}`
+            }
           </span>
           <button
-            onClick={() => changeWeek(1)}
+            onClick={() => viewMode === 'day' ? changeDay(1) : changeWeek(1)}
             className="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition"
           >
             Next ▶
           </button>
           <button
-            onClick={goToCurrentWeek}
+            onClick={goToToday}
             className="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-indigo-600 transition"
           >
             Today
@@ -249,12 +291,11 @@ export function CalendarView() {
         </div>
       </div>
 
-      <div className="min-w-[900px]">
+      <div className={viewMode === 'day' ? '' : 'min-w-[900px]'}>
         {/* Header row */}
-        <div className="grid grid-cols-8 gap-px bg-gray-200">
-          <div className="bg-gray-100 p-2 text-center text-sm font-semibold w-16">Time</div>
-          {Array.from({ length: 7 }, (_, i) => {
-            const date = addDays(weekStart, i);
+        <div className="grid gap-px bg-gray-200" style={gridStyle}>
+          <div className="bg-gray-100 p-2 text-center text-sm font-semibold">Time</div>
+          {displayDays.map((date, i) => {
             const isToday = isSameDay(date, new Date());
             const isWeekendDay = isWeekend(date.getDay());
             
@@ -273,9 +314,9 @@ export function CalendarView() {
         </div>
 
         {/* Calendar body with time slots and events */}
-        <div className="grid grid-cols-8 gap-px bg-gray-200">
+        <div className="grid gap-px bg-gray-200" style={gridStyle}>
           {/* Time column */}
-          <div className="bg-gray-50 w-16">
+          <div className="bg-gray-50">
             {timeSlots.map(slotIndex => {
               const totalMinutes = (4 * 60) + (slotIndex * 15);
               const hour = Math.floor(totalMinutes / 60);
@@ -297,8 +338,7 @@ export function CalendarView() {
           </div>
 
           {/* Day columns with events */}
-          {Array.from({ length: 7 }, (_, dayIndex) => {
-            const date = addDays(weekStart, dayIndex);
+          {displayDays.map((date, dayIndex) => {
             const dayOfWeek = date.getDay();
             const isToday = isSameDay(date, currentDate);
             const isWeekendDay = isWeekend(dayOfWeek);
