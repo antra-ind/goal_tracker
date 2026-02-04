@@ -235,6 +235,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             },
           },
         },
+        lastUpdated: new Date().toISOString(),
       };
     });
   }, [currentDate]);
@@ -260,6 +261,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             },
           },
         },
+        lastUpdated: new Date().toISOString(),
       };
     });
   }, [currentDate]);
@@ -285,6 +287,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             },
           },
         },
+        lastUpdated: new Date().toISOString(),
       };
     });
   }, [currentDate]);
