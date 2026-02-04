@@ -122,8 +122,17 @@ function PlannedCard({ category, dayKey, dayData, onToggle }: PlannedCardProps) 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
 
-  // Filter activities to show based on recurring type
-  const visibleActivities = category.activities.filter(act => shouldShowActivity(act, dayKey));
+  // Check which activities are scheduled for today (but show all)
+  const activitiesWithStatus = category.activities.map(act => ({
+    ...act,
+    isForToday: shouldShowActivity(act, dayKey)
+  }));
+  // Sort: today's activities first, then others
+  const sortedActivities = [...activitiesWithStatus].sort((a, b) => {
+    if (a.isForToday && !b.isForToday) return -1;
+    if (!a.isForToday && b.isForToday) return 1;
+    return 0;
+  });
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -223,33 +232,38 @@ function PlannedCard({ category, dayKey, dayData, onToggle }: PlannedCardProps) 
       </div>
 
       <div className="p-3">
-        {visibleActivities.length === 0 ? (
+        {sortedActivities.length === 0 ? (
           <p className="text-gray-400 text-center py-4 text-sm">
             No activities yet. Click + to add.
           </p>
         ) : (
-          visibleActivities.map(activity => {
+          sortedActivities.map(activity => {
             const isDone = dayData?.planned?.[activity.id] || false;
+            const isForToday = activity.isForToday;
             return (
               <div
                 key={activity.id}
-                onClick={() => onToggle(activity.id)}
-                className={`flex items-center p-3 my-2 rounded-lg cursor-pointer transition border-l-4 group ${
-                  isDone
-                    ? 'bg-green-50 border-green-500'
-                    : 'bg-gray-50 hover:bg-gray-100 border-transparent'
+                onClick={() => isForToday && onToggle(activity.id)}
+                className={`flex items-center p-3 my-2 rounded-lg transition border-l-4 group ${
+                  !isForToday
+                    ? 'bg-gray-100 border-gray-300 opacity-50'
+                    : isDone
+                    ? 'bg-green-50 border-green-500 cursor-pointer'
+                    : 'bg-gray-50 hover:bg-gray-100 border-transparent cursor-pointer'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={isDone}
-                  onChange={() => onToggle(activity.id)}
-                  className="w-5 h-5 mr-3 accent-green-500"
+                  onChange={() => isForToday && onToggle(activity.id)}
+                  disabled={!isForToday}
+                  className={`w-5 h-5 mr-3 ${isForToday ? 'accent-green-500' : 'accent-gray-400'}`}
                   onClick={e => e.stopPropagation()}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className={`font-medium ${isDone ? 'line-through text-green-700' : ''}`}>
+                  <div className={`font-medium ${!isForToday ? 'text-gray-400' : isDone ? 'line-through text-green-700' : ''}`}>
                     {activity.name}
+                    {!isForToday && <span className="ml-2 text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">Not Today</span>}
                   </div>
                   <div className="text-sm text-gray-500 flex flex-wrap gap-x-2 gap-y-1">
                     {activity.time && <span>⏰ {activity.time}</span>}

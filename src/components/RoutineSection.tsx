@@ -1,16 +1,32 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useData, getDateKey } from '../context/DataContext';
-import type { RoutineCategory, Habit, CategoryType } from '../types';
+import type { RoutineCategory, Habit, CategoryType, DayOfWeek } from '../types';
 import { CATEGORY_COLORS } from '../types';
 import { Modal } from './Modal';
 import { HabitForm } from './HabitForm';
 import { CategoryForm } from './CategoryForm';
 
+// Check if a habit should show on a given day
+function shouldShowHabit(habit: Habit, dayOfWeek: DayOfWeek): boolean {
+  const recurringType = habit.recurringType || 'daily';
+  
+  if (recurringType === 'daily') {
+    return true;
+  } else if (recurringType === 'weekly') {
+    return habit.recurringWeekday === dayOfWeek;
+  } else if (recurringType === 'custom' && habit.recurringDays) {
+    return habit.recurringDays.includes(dayOfWeek);
+  }
+  
+  return true; // Default to showing
+}
+
 export function RoutineSection() {
   const { data, currentDate, toggleHabit, setHabitValue, addRoutineCategory } = useData();
   const dayKey = getDateKey(currentDate);
   const dayData = data.days[dayKey];
+  const dayOfWeek = currentDate.getDay() as DayOfWeek;
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
@@ -37,6 +53,7 @@ export function RoutineSection() {
             key={category.id}
             category={category}
             dayData={dayData}
+            dayOfWeek={dayOfWeek}
             onToggle={toggleHabit}
             onSetValue={setHabitValue}
           />
@@ -61,13 +78,32 @@ export function RoutineSection() {
 interface CategoryCardProps {
   category: RoutineCategory;
   dayData: ReturnType<typeof useData>['data']['days'][string] | undefined;
+  dayOfWeek: DayOfWeek;
   onToggle: (habitId: string) => void;
   onSetValue: (habitId: string, value: number) => void;
 }
 
-function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardProps) {
+function CategoryCard({ category, dayData, dayOfWeek, onToggle, onSetValue }: CategoryCardProps) {
   const { addHabit, updateHabit, deleteHabit, updateRoutineCategory, deleteRoutineCategory } = useData();
   const bgColor = CATEGORY_COLORS[category.type] || CATEGORY_COLORS.other;
+
+  // Check which habits are for today (but show all)
+  const habitsWithStatus = useMemo(() => 
+    category.habits.map(habit => ({
+      ...habit,
+      isForToday: shouldShowHabit(habit, dayOfWeek)
+    })),
+    [category.habits, dayOfWeek]
+  );
+  // Sort: today's habits first, then others
+  const sortedHabits = useMemo(() => 
+    [...habitsWithStatus].sort((a, b) => {
+      if (a.isForToday && !b.isForToday) return -1;
+      if (!a.isForToday && b.isForToday) return 1;
+      return 0;
+    }),
+    [habitsWithStatus]
+  );
 
   const [showHabitModal, setShowHabitModal] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -148,12 +184,13 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
       </div>
 
       <div className="p-3">
-        {category.habits.length === 0 ? (
+        {sortedHabits.length === 0 ? (
           <p className="text-gray-400 text-center py-4 text-sm">
             No habits yet. Click + to add.
           </p>
         ) : (
-          category.habits.map(habit => {
+          sortedHabits.map(habit => {
+            const isForToday = habit.isForToday;
             const routineValue = dayData?.routine?.[habit.id];
             const isNumeric = habit.trackingType === 'number';
             const numValue = typeof routineValue === 'number' ? routineValue : 0;
@@ -176,7 +213,9 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
                 <div
                   key={habit.id}
                   className={`p-3 my-2 rounded-lg transition border-l-4 group ${
-                    isDone
+                    !isForToday
+                      ? 'bg-gray-100 border-gray-300 opacity-50'
+                      : isDone
                       ? 'bg-green-50 border-green-500'
                       : numValue > 0
                         ? 'bg-yellow-50 border-yellow-400'
@@ -185,8 +224,9 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex-1 min-w-0">
-                      <div className={`font-medium ${isDone ? 'text-green-700' : ''}`}>
+                      <div className={`font-medium ${!isForToday ? 'text-gray-400' : isDone ? 'text-green-700' : ''}`}>
                         {habit.name}
+                        {!isForToday && <span className="ml-2 text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">Not Today</span>}
                       </div>
                       <div className="text-xs text-gray-500">
                         {habit.time && <span>⏰ {habit.time}</span>}
@@ -219,16 +259,18 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
                       max={maxVal}
                       step={step}
                       value={numValue}
-                      onChange={(e) => onSetValue(habit.id, parseInt(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                      onChange={(e) => isForToday && onSetValue(habit.id, parseInt(e.target.value))}
+                      disabled={!isForToday}
+                      className={`w-full h-2 bg-gray-200 rounded-lg appearance-none ${isForToday ? 'cursor-pointer accent-blue-500' : 'cursor-not-allowed accent-gray-400'}`}
                     />
                   </div>
                   
                   {/* Numeric controls */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => onSetValue(habit.id, Math.max(minVal, numValue - step))}
-                      className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition text-sm font-bold"
+                      onClick={() => isForToday && onSetValue(habit.id, Math.max(minVal, numValue - step))}
+                      disabled={!isForToday}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition text-sm font-bold ${isForToday ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-100 cursor-not-allowed text-gray-400'}`}
                       title={`-${step}`}
                     >
                       -{step > 1 ? step : ''}
@@ -250,8 +292,9 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
                     </div>
                     
                     <button
-                      onClick={() => onSetValue(habit.id, Math.min(maxVal, numValue + step))}
-                      className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition text-sm font-bold"
+                      onClick={() => isForToday && onSetValue(habit.id, Math.min(maxVal, numValue + step))}
+                      disabled={!isForToday}
+                      className={`w-8 h-8 rounded-full text-white flex items-center justify-center transition text-sm font-bold ${isForToday ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 cursor-not-allowed'}`}
                       title={`+${step}`}
                     >
                       +{step > 1 ? step : ''}
@@ -265,23 +308,27 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
             return (
               <div
                 key={habit.id}
-                onClick={() => onToggle(habit.id)}
-                className={`flex items-center p-3 my-2 rounded-lg cursor-pointer transition border-l-4 group ${
-                  isDone
-                    ? 'bg-green-50 border-green-500'
-                    : 'bg-gray-50 hover:bg-gray-100 border-transparent'
+                onClick={() => isForToday && onToggle(habit.id)}
+                className={`flex items-center p-3 my-2 rounded-lg transition border-l-4 group ${
+                  !isForToday
+                    ? 'bg-gray-100 border-gray-300 opacity-50'
+                    : isDone
+                    ? 'bg-green-50 border-green-500 cursor-pointer'
+                    : 'bg-gray-50 hover:bg-gray-100 border-transparent cursor-pointer'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={isDone}
-                  onChange={() => onToggle(habit.id)}
-                  className="w-5 h-5 mr-3 accent-green-500 shrink-0"
+                  onChange={() => isForToday && onToggle(habit.id)}
+                  disabled={!isForToday}
+                  className={`w-5 h-5 mr-3 shrink-0 ${isForToday ? 'accent-green-500' : 'accent-gray-400'}`}
                   onClick={e => e.stopPropagation()}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className={`font-medium ${isDone ? 'line-through text-green-700' : ''}`}>
+                  <div className={`font-medium ${!isForToday ? 'text-gray-400' : isDone ? 'line-through text-green-700' : ''}`}>
                     {habit.name}
+                    {!isForToday && <span className="ml-2 text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">Not Today</span>}
                   </div>
                   <div className="text-sm text-gray-500">
                     {habit.time && <span>⏰ {habit.time}</span>}
