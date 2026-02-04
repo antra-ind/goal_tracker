@@ -1,7 +1,23 @@
 {
   "name": "goal_tracker",
-  "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "A personal goal and habit tracking application with daily routines, planned activities, and progress visualization. Features GitHub OAuth for authentication and Gist sync for cloud backup.",
+  "keywords": [
+    "habit-tracker",
+    "goal-tracker",
+    "productivity",
+    "react",
+    "typescript",
+    "github-oauth",
+    "personal-development"
+  ],
+  "author": "Antra <https://github.com/antra-ind>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antra-ind/goal_tracker.git"
+  },
+  "homepage": "https://antra-ind.github.io/goal_tracker",
   "type": "module",
   "scripts": {
     "dev": "vite",
