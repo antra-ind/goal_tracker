@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Minus } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useData, getDateKey } from '../context/DataContext';
 import type { RoutineCategory, Habit, CategoryType } from '../types';
 import { CATEGORY_COLORS } from '../types';
@@ -165,7 +165,13 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
               : 0;
 
             if (isNumeric) {
-              // Numeric habit with +/- controls
+              // Calculate smart step size based on target
+              const target = habit.target || 10;
+              const step = target >= 1000 ? 100 : target >= 100 ? 10 : 1;
+              const minVal = habit.min || 0;
+              const maxVal = habit.max || target * 2;
+              
+              // Numeric habit with slider and +/- controls
               return (
                 <div
                   key={habit.id}
@@ -205,13 +211,27 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
                     </div>
                   </div>
                   
+                  {/* Slider */}
+                  <div className="mb-2">
+                    <input
+                      type="range"
+                      min={minVal}
+                      max={maxVal}
+                      step={step}
+                      value={numValue}
+                      onChange={(e) => onSetValue(habit.id, parseInt(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                  </div>
+                  
                   {/* Numeric controls */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => onSetValue(habit.id, Math.max(habit.min || 0, numValue - 1))}
-                      className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition"
+                      onClick={() => onSetValue(habit.id, Math.max(minVal, numValue - step))}
+                      className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition text-sm font-bold"
+                      title={`-${step}`}
                     >
-                      <Minus size={16} />
+                      -{step > 1 ? step : ''}
                     </button>
                     
                     <div className="flex-1">
@@ -230,10 +250,11 @@ function CategoryCard({ category, dayData, onToggle, onSetValue }: CategoryCardP
                     </div>
                     
                     <button
-                      onClick={() => onSetValue(habit.id, Math.min(habit.max || 100, numValue + 1))}
-                      className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition"
+                      onClick={() => onSetValue(habit.id, Math.min(maxVal, numValue + step))}
+                      className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition text-sm font-bold"
+                      title={`+${step}`}
                     >
-                      <Plus size={16} />
+                      +{step > 1 ? step : ''}
                     </button>
                   </div>
                 </div>
