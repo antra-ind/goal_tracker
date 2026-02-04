@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GitBranch, LogOut, Cloud } from 'lucide-react';
+import { GitBranch, LogOut, CloudUpload, CloudDownload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { format } from 'date-fns';
@@ -7,7 +7,7 @@ import { TokenModal } from './TokenModal';
 
 export function Header() {
   const { isAuthenticated, user, loginWithToken, logout, loading, error } = useAuth();
-  const { currentDate, setCurrentDate, saving, lastSaved, syncWithGist } = useData();
+  const { currentDate, setCurrentDate, saving, lastSaved, syncWithGist, refreshFromGist } = useData();
   const [showTokenModal, setShowTokenModal] = useState(false);
 
   const changeDate = (days: number) => {
@@ -41,11 +41,20 @@ export function Header() {
           ) : isAuthenticated && user ? (
             <div className="flex items-center gap-3">
               <button
+                onClick={refreshFromGist}
+                className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
+                disabled={saving}
+                title="Pull from cloud"
+              >
+                <CloudDownload size={14} />
+              </button>
+              <button
                 onClick={syncWithGist}
                 className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1"
                 disabled={saving}
+                title="Push to cloud"
               >
-                <Cloud size={14} />
+                <CloudUpload size={14} />
                 Sync
               </button>
               <img

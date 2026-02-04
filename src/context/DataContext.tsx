@@ -33,6 +33,7 @@ interface DataContextType {
   saving: boolean;
   lastSaved: Date | null;
   syncWithGist: () => Promise<void>;
+  refreshFromGist: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
@@ -159,6 +160,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setSaving(false);
     }
   }, [isAuthenticated, token, gistId, data]);
+
+  // Refresh data from Gist (pull from cloud)
+  const refreshFromGist = useCallback(async () => {
+    if (!isAuthenticated || !token) return;
+
+    setSaving(true);
+    try {
+      const octokit = new Octokit({ auth: token });
+      
+      let currentGistId = gistId;
+      
+      // If no gistId, search for existing Gist
+      if (!currentGistId) {
+        const { data: gists } = await octokit.gists.list({ per_page: 100 });
+        const existingGist = gists.find(g => 
+          g.files && 'habit-tracker-data.json' in g.files
+        );
+        if (existingGist?.id) {
+          currentGistId = existingGist.id;
+          setGistId(currentGistId);
+          localStorage.setItem(STORAGE_KEYS.gistId, currentGistId);
+        }
+      }
+      
+      if (currentGistId) {
+        const { data: gist } = await octokit.gists.get({ gist_id: currentGistId });
+        const content = gist.files?.['habit-tracker-data.json']?.content;
+        if (content) {
+          const gistData = JSON.parse(content);
+          setData({ ...createDefaultAppData(), ...gistData });
+          setLastSaved(new Date());
+          console.log('Refreshed data from Gist');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh from Gist:', error);
+    } finally {
+      setSaving(false);
+    }
+  }, [isAuthenticated, token, gistId]);
 
   // Auto-sync to Gist when data changes (debounced 3 seconds)
   useEffect(() => {
@@ -471,6 +512,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         saving,
         lastSaved,
         syncWithGist,
+        refreshFromGist,
       }}
     >
       {children}
